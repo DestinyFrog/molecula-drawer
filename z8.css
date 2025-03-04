@@ -2,7 +2,7 @@
 .element {
 	font-family: 'Courier New', Courier, monospace;
 	font-size: 10px;
-	fill: white;
+	fill: black;
 	font-weight: bold;
 	dominant-baseline: middle;
 	text-anchor: middle;
@@ -13,26 +13,30 @@
 	stroke: black;
 }
 
-.ci-H {
+.element-H {
 	fill: #bbbbbb;
 }
 
-.ci-S {
+.element-S {
 	fill: #f7cd29;
 }
 
-.ci-Cl {
+.element-Cl {
 	fill: #21d122;
 }
 
-.ci-F {
+.element-F {
 	fill: #aed482;
 }
 
-.ci-O {
+.element-N {
+	fill: #7878fa;
+}
+
+.element-O {
 	fill: #eb3738;
 }
 
-.ci-C {
+.element-C {
 	fill: #000000;
 }
