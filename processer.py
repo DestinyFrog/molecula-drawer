@@ -353,6 +353,64 @@ def write_organic(atoms, ligations):
 
     return content
 
+def write_lewis(atoms, ligations):
+    content = ""
+    radius = 0.5
+
+    for atom in atoms:
+        [symbol, x, y, _] = atom
+        x += center_x
+        y += center_y
+        content += f'<text class="element element-{symbol}" x="{x}" y="{y}">{symbol}</text>'
+
+    for ligation in ligations: 
+        angle, eletrons, type, group = ligation
+        a, b = group
+
+        if type == LigationType.IONICA:
+            continue
+
+        ax = atoms[a][1] + center_x
+        ay = atoms[a][2] + center_y
+        bx = atoms[b][1] + center_x
+        by = atoms[b][2] + center_y
+
+        match eletrons:
+            case 1:
+                ax = ax + math.cos( math.pi * angle / 180.0 ) * cfg['ligation_distance_from_atom']
+                ay = ay + math.sin( math.pi * angle / 180.0 ) * cfg['ligation_distance_from_atom']
+                content += f'<circle class="ci-eletron" cx="{ax}" cy="{ay}" r="{radius}" />'
+                
+                if type != LigationType.COVALENTE_DATIVA:
+                    bx = bx + math.cos( math.pi * (angle+180) / 180.0 ) * cfg['ligation_distance_from_atom']
+                    by = by + math.sin( math.pi * (angle+180) / 180.0 ) * cfg['ligation_distance_from_atom']
+                    content += f'<circle class="ci-eletron" cx="{bx}" cy="{by}" r="{radius}" />'
+
+            case 2:
+                for i in [cfg['ligation_distance_from_ligation'], -cfg['ligation_distance_from_ligation']]:
+                    ax1 = ax + math.cos( math.pi * (angle + i) / 180.0 ) * cfg['ligation_distance_from_atom']
+                    ay1 = ay + math.sin( math.pi * (angle + i) / 180.0 ) * cfg['ligation_distance_from_atom']
+                    content += f'<circle class="ci-eletron" cx="{ax1}" cy="{ay1}" r="{radius}" />'
+
+                    if type != LigationType.COVALENTE_DATIVA:
+                        bx1 = bx + math.cos( math.pi * (angle + 180 - i) / 180.0 ) * cfg['ligation_distance_from_atom']
+                        by1 = by + math.sin( math.pi * (angle + 180 - i) / 180.0 ) * cfg['ligation_distance_from_atom']
+                        content += f'<circle class="ci-eletron" cx="{bx1}" cy="{by1}" r="{radius}" />'
+
+            case 3:
+                for i in [cfg['triple_ligation_distance_from_ligation'], 0, -cfg['triple_ligation_distance_from_ligation']]:
+                    ax1 = ax + math.cos( math.pi * (angle + i) / 180.0 ) * cfg['ligation_distance_from_atom']
+                    ay1 = ay + math.sin( math.pi * (angle + i) / 180.0 ) * cfg['ligation_distance_from_atom']
+                    content += f'<circle class="ci-eletron" cx="{ax1}" cy="{ay1}" r="{radius}" />'
+
+                    if type != LigationType.COVALENTE_DATIVA:
+                        bx1 = bx + math.cos( math.pi * (angle + 180 - i) / 180.0 ) * cfg['ligation_distance_from_atom']
+                        by1 = by + math.sin( math.pi * (angle + 180 - i) / 180.0 ) * cfg['ligation_distance_from_atom']
+                        content += f'<circle class="ci-eletron" cx="{bx1}" cy="{by1}" r="{radius}" />'
+
+    return content
+
+
 def save(content:str, posfix:str = ""):
     with open("z8.css") as file:
         style = file.read().replace("\n","").replace("\t","")
@@ -369,6 +427,9 @@ def save(content:str, posfix:str = ""):
 
 content_standard = write_standard(atoms, ligations)
 save(content_standard)
+
+content_lewis = write_lewis(atoms, ligations)
+save(content_lewis, ".lewis")
 
 if "organic" in tags:
     content_organic = write_organic(atoms, ligations)
