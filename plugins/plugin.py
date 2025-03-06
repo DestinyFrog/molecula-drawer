@@ -1,10 +1,10 @@
 import math
 
-from handler import Handler, LigationType
+from handler.handler import Handler, LigationType
 
 class Plugin(Handler):
-    standard_css = "z9.css"
-    standard_template_svg = "z9.temp.svg"
+    standard_css = "z1.css"
+    standard_template_svg = "z1.temp.svg"
 
     ligation_size = 26
     ligation_distance_from_atom = 7
@@ -16,12 +16,9 @@ class Plugin(Handler):
     posfix = ""
 
     def __init__(self, code:str):
-        section_tags, section_atoms, section_ligations = self.split_sections(code)
-
-        self.tags = self.handle_section_tags(section_tags)
-
-        self.ligations = self.handle_section_ligations(section_ligations)
-        self.atoms = self.handle_atoms(section_atoms)
+        super(Plugin, self).__init__(code)
+        
+        self.atoms = self.handle_atoms()
 
         (width, height), (center_x, center_y) = self.get_bounds()
         self.width = width
@@ -34,9 +31,8 @@ class Plugin(Handler):
             style = file.read().replace("\n","").replace("\t","")
         return style
 
-    def handle_atoms(self, section_atoms:str):
-        atoms = self.handle_section_atoms(section_atoms, self.ligations)
-        atoms = self.handle_atoms_position(atoms)
+    def handle_atoms(self):
+        atoms = self.handle_atoms_position(self.atoms)
         atoms.sort(key = lambda x: x[3])
         return atoms
 
@@ -117,7 +113,7 @@ class Plugin(Handler):
         big_x = 0
         big_y = 0
 
-        for [_, x, y, _] in self.atoms:        
+        for [_, x, y, _] in self.atoms:
             if small_x > x:
                 small_x = x
 
@@ -145,6 +141,7 @@ class Plugin(Handler):
 
     def build(self):
         content = self.write()
+
         with open(self.standard_template_svg) as file:
             svg_template = file.read()
             svg = svg_template.replace('$width', str(self.width))
