@@ -1,7 +1,7 @@
 import math
 
 from plugins.plugin import Plugin
-from handler.types import LigationType
+from handler.ligationType import LigationType
 from helper.svg import Svg
 
 class OrganicPlugin(Plugin):

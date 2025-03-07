@@ -1,5 +1,5 @@
-from handler.types import LigationType
-
+from handler.ligationType import LigationType
+from handler.patterns import Pattern
 class SectionHandler():
     tags: list[str]
     ligations: list[(str, str, str)]
@@ -48,7 +48,7 @@ class SectionHandler():
                 ligation = self.build_ligation(angle, eletrons, type)
                 ligations.append(ligation)
             else:
-                pattern = self.match_patterns(angle_or_pattern)
+                pattern = Pattern.find_pattern(angle_or_pattern)
                 for ligation in pattern:
                     ligations.append(ligation)
 

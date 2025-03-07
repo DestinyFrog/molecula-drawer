@@ -1,6 +1,7 @@
 import math
 
-from handler.handler import Handler, LigationType
+from handler.handler import Handler
+from handler.ligationType import LigationType
 from helper.svg import Svg
 
 class Plugin(Handler):
@@ -79,6 +80,10 @@ class Plugin(Handler):
     def write_atoms(self, svg:Svg) -> Svg:
         for atom in self.atoms:
             symbol, x, y, _ = atom
+
+            if symbol == 'X':
+                continue
+
             svg.text(symbol, x + self.center_x, y + self.center_y)
 
         return svg
@@ -89,9 +94,12 @@ class Plugin(Handler):
 
             if type == LigationType.IONICA:
                 continue
+
+            a, b = group
+            if self.atoms[b][0] == 'X':
+                continue
             
             wave = self.eletrons_to_waves(eletrons)
-            a, b = group
 
             for ax, ay, bx, by in self.calculate_lines(a, b, angle, wave):
                 svg.line(ax, ay, bx, by)

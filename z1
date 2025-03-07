@@ -1,6 +1,7 @@
-#!python shebang
+#!/usr/bin/python3
 
 import sys
+import time
 
 # from plugins.defaultPlugin import DefaultPlugin as Plugin
 from plugins.organicPlugin import OrganicPlugin as Plugin
@@ -18,3 +19,4 @@ filename_not_ext = "".join(sp)
 z1 = Plugin(file_content)
 svg = z1.get_svg()
 svg.save(filename_not_ext)
+time.sleep(2)

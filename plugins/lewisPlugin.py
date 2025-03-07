@@ -1,5 +1,5 @@
 from plugins.plugin import Plugin
-from handler.types import LigationType
+from handler.ligationType import LigationType
 from helper.svg import Svg
 
 class LewisPlugin(Plugin):
@@ -16,12 +16,13 @@ class LewisPlugin(Plugin):
 
             if type == LigationType.IONICA:
                 continue
-            
+
             wave = self.eletrons_to_waves(eletrons)
             a, b = group
 
-            for ax, ay, bx, by in self.calculate_lines(a, b, angle, wave):
+            for ax, ay, bx, by in self.calculate_lines(a, b, angle, wave):    
                 svg.circle(ax, ay, self.eletrons_radius)
-                svg.circle(bx, by, self.eletrons_radius)
+                if type != LigationType.COVALENTE_DATIVA:
+                    svg.circle(bx, by, self.eletrons_radius)
 
         return svg
