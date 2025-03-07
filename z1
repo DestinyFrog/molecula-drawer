@@ -1,3 +1,5 @@
+#!python shebang
+
 import sys
 
 # from plugins.defaultPlugin import DefaultPlugin as Plugin

@@ -1,6 +1,7 @@
 import math
 
 from handler.handler import Handler, LigationType
+from helper.svg import Svg
 
 class Plugin(Handler):
     standard_css = "z1.css"
@@ -10,14 +11,12 @@ class Plugin(Handler):
     ligation_distance_from_atom = 7
     ligation_distance_from_ligation = 9
     triple_ligation_distance_from_ligation = 16
-    border = 16
 
-    svg = None
-    posfix = ""
+    border = 16
 
     def __init__(self, code:str):
         super(Plugin, self).__init__(code)
-        
+
         self.atoms = self.handle_atoms()
 
         (width, height), (center_x, center_y) = self.get_bounds()
@@ -25,11 +24,6 @@ class Plugin(Handler):
         self.height = height
         self.center_x = center_x
         self.center_y = center_y
-
-    def get_css(self):
-        with open(self.standard_css) as file:
-            style = file.read().replace("\n","").replace("\t","")
-        return style
 
     def handle_atoms(self):
         atoms = self.handle_atoms_position(self.atoms)
@@ -60,52 +54,56 @@ class Plugin(Handler):
 
         return list
 
-    def write(self):
-        content = ""
+    def calculate_lines(self, a:int, b:int, angle:float, wave = [0]):
+        ax = self.atoms[a][1] + self.center_x
+        ay = self.atoms[a][2] + self.center_y
+        bx = self.atoms[b][1] + self.center_x
+        by = self.atoms[b][2] + self.center_y
 
+        for i in wave:
+            x1 = ax + math.cos( math.pi * (angle+i) / 180.0 ) * self.ligation_distance_from_atom
+            y1 = ay + math.sin( math.pi * (angle+i) / 180.0 ) * self.ligation_distance_from_atom
+            x2 = bx + math.cos( math.pi * (angle+180-i) / 180.0 ) * self.ligation_distance_from_atom
+            y2 = by + math.sin( math.pi * (angle+180-i) / 180.0 ) * self.ligation_distance_from_atom
+            yield x1, y1, x2, y2
+
+    def eletrons_to_waves(self, eletrons: int):
+        match eletrons:
+            case 1:
+                return [0]
+            case 2:
+                return [self.ligation_distance_from_ligation, -self.ligation_distance_from_ligation]
+            case 3:
+                return [self.triple_ligation_distance_from_ligation, 0, -self.triple_ligation_distance_from_ligation ]
+
+    def write_atoms(self, svg:Svg) -> Svg:
         for atom in self.atoms:
-            [symbol, x, y, _] = atom
-            x += self.center_x
-            y += self.center_y
-            content += f'<text class="element element-{symbol}" x="{x}" y="{y}">{symbol}</text>'
+            symbol, x, y, _ = atom
+            svg.text(symbol, x + self.center_x, y + self.center_y)
 
+        return svg
+
+    def write_ligations(self, svg:Svg) -> Svg:
         for ligation in self.ligations: 
             angle, eletrons, type, group = ligation
-            a, b = group
 
             if type == LigationType.IONICA:
                 continue
+            
+            wave = self.eletrons_to_waves(eletrons)
+            a, b = group
 
-            ax = self.atoms[a][1] + self.center_x
-            ay = self.atoms[a][2] + self.center_y
-            bx = self.atoms[b][1] + self.center_x
-            by = self.atoms[b][2] + self.center_y
+            for ax, ay, bx, by in self.calculate_lines(a, b, angle, wave):
+                svg.line(ax, ay, bx, by)
 
-            match eletrons:
-                case 1:
-                    ax = ax + math.cos( math.pi * angle / 180.0 ) * self.ligation_distance_from_atom
-                    ay = ay + math.sin( math.pi * angle / 180.0 ) * self.ligation_distance_from_atom
-                    bx = bx + math.cos( math.pi * (angle+180) / 180.0 ) * self.ligation_distance_from_atom
-                    by = by + math.sin( math.pi * (angle+180) / 180.0 ) * self.ligation_distance_from_atom
-                    content += f'<line class="ligation" x1="{ax}" y1="{ay}" x2="{bx}" y2="{by}" />'
+        return svg
 
-                case 2:
-                    for i in [self.ligation_distance_from_ligation, -self.ligation_distance_from_ligation]:
-                        ax1 = ax + math.cos( math.pi * (angle + i) / 180.0 ) * self.ligation_distance_from_atom
-                        ay1 = ay + math.sin( math.pi * (angle + i) / 180.0 ) * self.ligation_distance_from_atom
-                        bx1 = bx + math.cos( math.pi * (angle+180 - i) / 180.0 ) * self.ligation_distance_from_atom
-                        by1 = by + math.sin( math.pi * (angle+180 - i) / 180.0 ) * self.ligation_distance_from_atom
-                        content += f'<line class="ligation" x1="{ax1}" y1="{ay1}" x2="{bx1}" y2="{by1}"/>'
-
-                case 3:
-                    for i in [self.triple_ligation_distance_from_ligation, 0, -self.triple_ligation_distance_from_ligation]:
-                        ax1 = ax + math.cos( math.pi * (angle + i) / 180.0 ) * self.ligation_distance_from_atom
-                        ay1 = ay + math.sin( math.pi * (angle + i) / 180.0 ) * self.ligation_distance_from_atom
-                        bx1 = bx + math.cos( math.pi * (angle+180 - i) / 180.0 ) * self.ligation_distance_from_atom
-                        by1 = by + math.sin( math.pi * (angle+180 - i) / 180.0 ) * self.ligation_distance_from_atom
-                        content += f'<line class="ligation" x1="{ax1}" y1="{ay1}" x2="{bx1}" y2="{by1}"/>'
-
-        return content
+    def write(self):
+        self.get_bounds()
+        svg = Svg(self.width, self.height)
+        svg = self.write_atoms(svg)
+        svg = self.write_ligations(svg)
+        return svg
 
     def get_bounds(self):
         small_x = 0
@@ -139,21 +137,5 @@ class Plugin(Handler):
 
         return size, center
 
-    def build(self):
-        content = self.write()
-
-        with open(self.standard_template_svg) as file:
-            svg_template = file.read()
-            svg = svg_template.replace('$width', str(self.width))
-            svg = svg.replace('$height', str(self.height))
-            svg = svg.replace('$style', self.get_css())
-            svg = svg.replace('$content', content)
-
-        self.svg = svg
-
-    def save(self, filename:str):
-        if self.svg is not None:
-            with open(f"{filename}{self.posfix}.svg", "w") as file:
-                file.write(self.svg)
-        else:
-            raise Exception("Content not built")
+    def get_svg(self):
+        return self.write()

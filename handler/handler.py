@@ -15,16 +15,6 @@ class Handler(SectionHandler):
                 return 1
         return None
 
-    def match_ligation_type(self, text:str):
-        match text:
-            case 'd':
-                return LigationType.COVALENTE_DATIVA
-            case 'c':
-                return LigationType.COVALENTE
-            case 'i':
-                return LigationType.IONICA
-        return None
-
     def match_patterns(self, text:str) -> list[float]:
         match text:
             case 'benz' | 'benZ':

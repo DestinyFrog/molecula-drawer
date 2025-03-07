@@ -27,11 +27,11 @@ class SectionHandler():
 
             if eletrons is None:
                 eletrons = 1
-                type = self.match_ligation_type(first_tag)
+                type = LigationType.match_ligation_type(first_tag)
         elif len(tags) == 2:
             [eletrons_txt, type_txt] = tags
             eletrons = self.match_eletrons(eletrons_txt)
-            type = self.match_ligation_type(type_txt)
+            type = LigationType.match_ligation_type(type_txt)
 
         return eletrons, type
 
@@ -54,12 +54,12 @@ class SectionHandler():
 
         return ligations
 
-    def handle_section_atoms(self, section:str):
+    def handle_section_atoms(self, section:str) -> list[str]:
         atoms = []
         lines = section.split("\n")
 
         for line_atom in lines:
-            [ symbol, *atom_ligations ] = line_atom.split(" ")
+            symbol, *atom_ligations = line_atom.split(" ")
 
             idx = len(atoms)
             atom = (symbol)

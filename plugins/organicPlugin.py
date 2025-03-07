@@ -2,38 +2,51 @@ import math
 
 from plugins.plugin import Plugin
 from handler.types import LigationType
+from helper.svg import Svg
 
 class OrganicPlugin(Plugin):
-    posfix = ".organic"
-
     def __init__(self, code:str):
         super(OrganicPlugin, self).__init__(code)
 
-    def write(self):
-        content = ""
-
+    def write_atoms(self, svg:Svg) -> Svg:
         for atom in self.atoms:
-            [symbol, x, y, _] = atom
-            
-            if atom[0] == 'C':
+            [symbol, x, y, index] = atom
+
+            if symbol == 'C':
                 continue
-            
-            if atom[0] == 'H':
-                my_ligations = list(filter(lambda l: l[3][1] == atom[3], self.ligations))
-                if self.atoms[my_ligations[0][3][0]][0] == 'C':
+
+            if symbol == 'H':
+                my_ligations = list(filter(lambda ligation: ligation[3][1] == index, self.ligations))
+                group = my_ligations[0][3]
+                another_atom = self.atoms[ group[0] ]
+                if another_atom[0] == 'C':
                     continue
 
-            x += self.center_x
-            y += self.center_y
-            content += f'<text class="element element-{symbol}" x="{x}" y="{y}">{symbol}</text>'
+            svg.text(symbol, x + self.center_x, y + self.center_y)
 
+        return svg
+
+    def calculate_lines(self, a:int, b:int, angle:float, wave = [(0,0,0,0)]):
+        ax = self.atoms[a][1] + self.center_x
+        ay = self.atoms[a][2] + self.center_y
+        bx = self.atoms[b][1] + self.center_x
+        by = self.atoms[b][2] + self.center_y
+
+        for (f, t, df, dt) in wave:
+            x1 = ax + math.cos( math.pi * (angle+f) / 180.0 ) * df
+            y1 = ay + math.sin( math.pi * (angle+f) / 180.0 ) * df
+            x2 = bx + math.cos( math.pi * (angle+180+t) / 180.0 ) * dt
+            y2 = by + math.sin( math.pi * (angle+180+t) / 180.0 ) * dt
+            yield x1, y1, x2, y2
+
+    def write_ligations(self, svg):
         for ligation in self.ligations: 
             angle, eletrons, type, group = ligation
-            a, b = group
 
             if type == LigationType.IONICA:
                 continue
 
+            a, b = group
             atom_from = self.atoms[a]
             atom_to = self.atoms[b]
 
@@ -45,25 +58,15 @@ class OrganicPlugin(Plugin):
 
             if atom_from[0] == 'C':
                 ligation_distance_from = 0
-                
+
             if atom_to[0] == 'C':
                 ligation_distance_to = 0
 
-            ax = atom_from[1] + self.center_x
-            ay = atom_from[2] + self.center_y
-            bx = atom_to[1] + self.center_x
-            by = atom_to[2] + self.center_y
+            wave = [(0, 0, ligation_distance_from, ligation_distance_to)]
 
             match eletrons:
-                case 1:
-                    ax = ax + math.cos( math.pi * angle / 180.0 ) * ligation_distance_from
-                    ay = ay + math.sin( math.pi * angle / 180.0 ) * ligation_distance_from
-                    bx = bx + math.cos( math.pi * (angle+180) / 180.0 ) * ligation_distance_to
-                    by = by + math.sin( math.pi * (angle+180) / 180.0 ) * ligation_distance_to
-                    content += f'<line class="ligation" x1="{ax}" y1="{ay}" x2="{bx}" y2="{by}" />'
-
                 case 2:
-                    sum_from = -self.ligation_distance_from_ligation
+                    sum_from = self.ligation_distance_from_ligation
                     sum_to = self.ligation_distance_from_ligation
 
                     if ligation_distance_from == 0:
@@ -74,47 +77,23 @@ class OrganicPlugin(Plugin):
                         ligation_distance_to = 1
                         sum_to = 90
 
-                    ax1 = ax + math.cos( math.pi * (angle + sum_from) / 180.0 ) * ligation_distance_from
-                    ay1 = ay + math.sin( math.pi * (angle + sum_from) / 180.0 ) * ligation_distance_from
-                    bx1 = bx + math.cos( math.pi * (angle+180 - sum_to) / 180.0 ) * ligation_distance_to
-                    by1 = by + math.sin( math.pi * (angle+180 - sum_to) / 180.0 ) * ligation_distance_to
-                    content += f'<line class="ligation" x1="{ax1}" y1="{ay1}" x2="{bx1}" y2="{by1}"/>'
-
-                    ax1 = ax + math.cos( math.pi * (angle - sum_from) / 180.0 ) * ligation_distance_from
-                    ay1 = ay + math.sin( math.pi * (angle - sum_from) / 180.0 ) * ligation_distance_from
-                    bx1 = bx + math.cos( math.pi * (angle+180 + sum_to) / 180.0 ) * ligation_distance_to
-                    by1 = by + math.sin( math.pi * (angle+180 + sum_to) / 180.0 ) * ligation_distance_to
-                    content += f'<line class="ligation" x1="{ax1}" y1="{ay1}" x2="{bx1}" y2="{by1}"/>'
+                    wave = [ (sum_from, -sum_to, ligation_distance_from, ligation_distance_to), (-sum_from, sum_to, ligation_distance_from, ligation_distance_to) ]
 
                 case 3:
-                    sum_from = -self.triple_ligation_distance_from_ligation
-                    sum_to = self.triple_ligation_distance_from_ligation
+                    sum_from = self.ligation_distance_from_ligation
+                    sum_to = self.ligation_distance_from_ligation
 
                     if ligation_distance_from == 0:
-                        ligation_distance_from = 2
+                        ligation_distance_from = 1
                         sum_from = 90
                     
                     if ligation_distance_to == 0:
-                        ligation_distance_to = 2
+                        ligation_distance_to = 1
                         sum_to = 90
 
-                    ax1 = ax + math.cos( math.pi * (angle + sum_from) / 180.0 ) * ligation_distance_from
-                    ay1 = ay + math.sin( math.pi * (angle + sum_from) / 180.0 ) * ligation_distance_from
-                    bx1 = bx + math.cos( math.pi * (angle+180 - sum_to) / 180.0 ) * ligation_distance_to
-                    by1 = by + math.sin( math.pi * (angle+180 - sum_to) / 180.0 ) * ligation_distance_to
-                    content += f'<line class="ligation" x1="{ax1}" y1="{ay1}" x2="{bx1}" y2="{by1}"/>'
+                    wave = [ (sum_from, -sum_to, ligation_distance_from, ligation_distance_to), (0, 0, ligation_distance_from, ligation_distance_to) ,(-sum_from, sum_to, ligation_distance_from, ligation_distance_to) ]
 
-                    ax1 = ax + math.cos( math.pi * (angle ) / 180.0 ) * ligation_distance_from
-                    ay1 = ay + math.sin( math.pi * (angle ) / 180.0 ) * ligation_distance_from
-                    bx1 = bx + math.cos( math.pi * (angle+180) / 180.0 ) * ligation_distance_to
-                    by1 = by + math.sin( math.pi * (angle+180) / 180.0 ) * ligation_distance_to
-                    content += f'<line class="ligation" x1="{ax1}" y1="{ay1}" x2="{bx1}" y2="{by1}"/>'
+            for ax, ay, bx, by in self.calculate_lines(a, b, angle, wave):
+                svg.line(ax, ay, bx, by)
 
-                    ax1 = ax + math.cos( math.pi * (angle - sum_from) / 180.0 ) * ligation_distance_from
-                    ay1 = ay + math.sin( math.pi * (angle - sum_from) / 180.0 ) * ligation_distance_from
-                    bx1 = bx + math.cos( math.pi * (angle+180 + sum_to) / 180.0 ) * ligation_distance_to
-                    by1 = by + math.sin( math.pi * (angle+180 + sum_to) / 180.0 ) * ligation_distance_to
-                    content += f'<line class="ligation" x1="{ax1}" y1="{ay1}" x2="{bx1}" y2="{by1}"/>'
-
-
-        return content
+        return svg
